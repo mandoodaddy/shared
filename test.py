@@ -11,6 +11,7 @@ PORT = 1234
 def printdata(data):
     f = open('raiddata.log', 'a')
     f.write(data)
+    f.write("\n")
     f.close()
     return
 
