@@ -3,7 +3,7 @@ import socket
 import asyncio
 
 # Discord 봇 토큰
-TOKEN = 'MTEyMjkwNjc1MjU2NDg3MTE2OA.GqKKuD.EDGNNjOmp7OU26uuq_olEeV6m_ZCYVY1521rZc'
+TOKEN = 'MTEyMjkwNjc1MjU2NDg3MTE2OA.GLv93o.k-o2pxombZBiD5gCbArLSnPQBwxjF6MpJlNGE0'
 CHANNEL_ID = "968372146806063168"
 
 HOST = '127.0.0.1'
