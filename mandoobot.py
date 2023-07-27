@@ -4,6 +4,13 @@ import socket
 import asyncio
 import json
 import pandas as pd
+import configparser
+
+# configparser 객체 생성
+config = configparser.ConfigParser()
+
+# config.ini 파일 읽기
+config.read('config.ini')
 
 player_rawdata = {'player' : ['HY', 'ShiJinBBing', 'ShinBBing', '가설', '고만두', '굿럭', '나우니스리', '다정', '다킁이', '두더지', '또가스', '마스터즈', '만두아빠', '미스터문', '백야', '비의', '비즈맨', '새벽', '샤이즌', '소이츠맨', '쉼찡', '스톰피스트', '스포디', '신속', '신우', '야르', '어택', '에펠탑꼭대기', '으엌', '이실', '임일병', '저녁', '조운', '진진', '찐콩', '초점없는눈', '치느', '킹물소', '택돌이', '탭하는아재', '테이커', '텍스트', '페이트', '풍경', '프리츠', '핑프', '하울', '하트', '하하', '헬보이']}
 HYDF = pd.DataFrame(player_rawdata)
@@ -12,7 +19,7 @@ HYDF['VM'] = 0
 HYDF['AttackCount'] = 0
 HYDF['History'] = ""
 # Discord 봇 토큰
-TOKEN = 'MTEyMjkwNjc1MjU2NDg3MTE2OA.GLinMz.0RfKLaZxjm6XmmrClH8SLs4mJkZM6L7fnUd08Y'
+TOKEN = config.get('Config', 'token')
 CHANNEL_ID = "968372146806063168"
 
 HOST = '127.0.0.1'
