@@ -63,7 +63,7 @@ async def connected():
     if len(resp.refused) > 0:
         print("Failed to subscribe to clan with reason:", resp.refused[0].reason)
     else:
-        print("Subscribed to clan:", resp.ok[0].clan_code)
+        print("Subscribed to clan:", resp.ok[0])
 
 
 # Here is an example of every event type with its corresponding object
