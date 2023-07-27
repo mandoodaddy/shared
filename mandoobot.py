@@ -12,7 +12,7 @@ HYDF['VM'] = 0
 HYDF['AttackCount'] = 0
 HYDF['History'] = ""
 # Discord 봇 토큰
-TOKEN = 'MTEyMjkwNjc1MjU2NDg3MTE2OA.GEDqip.02D7aJLabDVRe8g0fbLs8-vgPGGBAVhO7znym8'
+TOKEN = 'MTEyMjkwNjc1MjU2NDg3MTE2OA.GLinMz.0RfKLaZxjm6XmmrClH8SLs4mJkZM6L7fnUd08Y'
 CHANNEL_ID = "968372146806063168"
 
 HOST = '127.0.0.1'

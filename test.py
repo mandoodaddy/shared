@@ -17,10 +17,10 @@ channel = ""
 HOST = '127.0.0.1'
 PORT = 1234
 def printdata(data):
-    f = open('raiddata.log', 'a')
-    f.write(data)
-    f.write('\n')
-    f.close()
+    #f = open('raiddata.log', 'a')
+    #f.write(data)
+    #f.write('\n')
+    #f.close()
     return
 
 def start_client(msg):
@@ -38,7 +38,7 @@ def start_client(msg):
                 #print('Server response:', response.decode())
                 break
             except Exception as e:
-                print('Error occurred:', str(e))
+                #print('Error occurred:', str(e))
                 time.sleep(1)  # 1초 대기 후 재시도
 
 
