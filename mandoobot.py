@@ -16,10 +16,15 @@ player_rawdata = {'player' : ['HY', 'ShiJinBBing', 'ShinBBing', '가설', '고�
 HYDF = pd.DataFrame(player_rawdata)
 HYDF['Void'] = 0
 HYDF['VM'] = 0
+HYDF['Tactics'] = 0
 HYDF['AttackCount'] = 0
 HYDF['History'] = ""
+target_turn = 6
+remain_count = 1800
 # Discord 봇 토큰
+#TOKEN = config.get('tester', 'token')
 TOKEN = config.get('Config', 'token')
+
 CHANNEL_ID = "968372146806063168"
 
 HOST = '127.0.0.1'
@@ -52,57 +57,80 @@ async def on_custom_event(message):
 
 @client.event
 async def on_message(message):
+    global target_turn
+    global remain_count
     if message.author == client.user:
         return
 
-    if message.content.startswith('!Void') or message.content.startswith('!void'):
-        Void = list(HYDF[HYDF['Void'] == 0]['player'])
-        await message.channel.send("%s 남은타수 : %d" % (str(Void), len(Void)))
-
-    if message.content.startswith('!vm') or message.content.startswith('!VM'):
-        VM = list(HYDF[HYDF['VM'] == 0]['player'])
-        await message.channel.send("%s 남은타수 : %d" % (str(VM), len(VM)))
-
-    if message.content.startswith('!attack'):
-        ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
-        ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
-        await message.channel.send("%s\n 남은 사람수 : %d, 남은타수 : %d" % (str(ATTACKCOUNTLIST), len(ATTACKCOUNTLIST), sum(ATTACKCOUNT)))
-
-    if message.content.startswith('!info'):
-        content = str(message.content)
-        word = content.split(" ")
-        if len(word) >= 2:
-            name = word[1]
-            row = HYDF[HYDF['player'] == name]
-            history = row.iloc[0]['History'].split("|")
-            log = "attack log"
-            for data in history:
-                log = log + "\n" + raidinfoparser(data)
-            log = log + "\nEnd log"
-            await message.channel.send(log)
-
-    if message.content.startswith('!안녕'):
-        await message.channel.send('안녕하세요')
-
     if 'manduappa' in str(message.author):
-        if message.content.startswith('!start_server'):
+        if message.content.startswith('!Void') or message.content.startswith('!void'):
+            Void = list(HYDF[HYDF['Void'] == 0]['player'])
+            await message.channel.send("%s 남은타수 : %d" % (str(Void), len(Void)))
+
+        if message.content.startswith('!vm') or message.content.startswith('!VM'):
+            VM = list(HYDF[HYDF['VM'] == 0]['player'])
+            await message.channel.send("%s 남은타수 : %d" % (str(VM), len(VM)))
+
+        if message.content.startswith('!tac'):
+            TAC = list(HYDF[HYDF['Tactics'] == 0]['player'])
+            await message.channel.send("%s 남은타수 : %d" % (str(TAC), len(TAC)))
+
+        if message.content.startswith('!attack'):
+            ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
+            ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
+            await message.channel.send("%s\n 남은 사람수 : %d, 남은타수 : %d" % (str(ATTACKCOUNTLIST), len(ATTACKCOUNTLIST), sum(ATTACKCOUNT)))
+
+        if message.content.startswith('!info'):
+            content = str(message.content)
+            word = content.split(" ")
+            if len(word) >= 2:
+                name = word[1]
+                row = HYDF[HYDF['player'] == name]
+                history = row.iloc[0]['History'].split("|")
+                log = "attack log"
+                for data in history:
+                    log = log + "\n" + raidinfoparser(data)
+                log = log + "\nEnd log"
+                await message.channel.send(log)
+
+        if message.content.startswith('.안녕'):
+            await message.channel.send('안녕하세요')
+
+        if message.content.startswith('.start_server'):
             global bStartServer
             if bStartServer:
                 await message.channel.send('이미 서버가 시작중입니다.')
             else:
                 bStartServer = True
                 asyncio.create_task(start_server(message.channel))
-        if message.content.startswith('!테스트'):
-            emoji = discord.utils.get(client.emojis, name='InnerTruth')
-            print(HYDF)
 
+        if message.content.startswith('.setturn'):
+            content = str(message.content)
+            word = content.split(" ")
+            if len(word) >= 2:
+                target_turn = int(word[1])
+                remain_count = target_turn * 300
+                await message.channel.send('%d턴 목표 설정 남은 타수 %d로 설정 되었습니다' % (target_turn, remain_count))
+
+        if message.content.startswith('.setremaincount'):
+            content = str(message.content)
+            word = content.split(" ")
+            if len(word) >= 2:
+                remain_count = int(word[1])
+                await message.channel.send('남은 타수 %d로 설정 되었습니다' % (remain_count))
 def raidinfoparser(data):
+    global remain_count
     jsonObject2 = json.loads(data)
+    remainhp = jsonObject2['remainhp']
+    attack_count = jsonObject2['attack_count']
+    remain_attach_count = remain_count - attack_count
+    average = remainhp / remain_attach_count
     data = "%s(%d) 남은타수 : %d, Damage: %s\n" % (
     jsonObject2['name'], jsonObject2['raid_level'], jsonObject2['attacks_remaining'], jsonObject2['damage'])
     for cardlevel in jsonObject2['card_level']:
         cardemoji = discord.utils.get(client.emojis, name=cardlevel['id'])
         data = data + "%s (%d), " % (str(cardemoji), cardlevel['value'])
+    data = data + '%d턴목표 평딜(%.1fM)' % (target_turn, average/1000000)
     return data
 
 async def attack_log(data, channel):
@@ -120,6 +148,8 @@ async def attack_log(data, channel):
             HYDF.loc[HYDF['player'] == jsonObject['name'], 'VM'] = 1
         if 'CrushingVoid' in cardlevel.values():
             HYDF.loc[HYDF['player'] == jsonObject['name'], 'Void'] = 1
+        if 'TeamTactics' in cardlevel.values():
+            HYDF.loc[HYDF['player'] == jsonObject['name'], 'Tactics'] = 1
     data = raidinfoparser(data)
     await channel.send('{}'.format(data))
 async def start_server(channel):
@@ -139,17 +169,20 @@ async def start_server(channel):
                     if not data:
                         break
                     data = data.decode()
+                    #print(data)
                     jsonObject = json.loads(data)
                     if 'attack_log' in jsonObject:
                         await attack_log(str(jsonObject['attack_log']).replace("'", '"'), channel)
                     elif 'raid_end' in jsonObject:
                         HYDF['Void'] = 0
                         HYDF['VM'] = 0
+                        HYDF['Tactics'] = 0
                         HYDF['AttackCount'] = 6
                         HYDF['History'] = ""
                     elif 'raid_cycle_reset' in jsonObject:
                         HYDF['Void'] = 0
                         HYDF['VM'] = 0
+                        HYDF['Tactics'] = 0
                         HYDF['AttackCount'] = HYDF.apply(attackupdate, axis=1)
                         HYDF['History'] = ""
                     #elif 'raid_target_changed' in jsonObject:
