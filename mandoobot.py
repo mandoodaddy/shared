@@ -62,37 +62,37 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    if message.content.startswith('!Void') or message.content.startswith('!void'):
+        Void = list(HYDF[HYDF['Void'] == 0]['player'])
+        await message.channel.send("%s 남은타수 : %d" % (str(Void), len(Void)))
+
+    if message.content.startswith('!vm') or message.content.startswith('!VM'):
+        VM = list(HYDF[HYDF['VM'] == 0]['player'])
+        await message.channel.send("%s 남은타수 : %d" % (str(VM), len(VM)))
+
+    if message.content.startswith('!tac'):
+        TAC = list(HYDF[HYDF['Tactics'] == 0]['player'])
+        await message.channel.send("%s 남은타수 : %d" % (str(TAC), len(TAC)))
+
+    if message.content.startswith('!attack'):
+        ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
+        ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
+        await message.channel.send("%s\n 남은 사람수 : %d, 남은타수 : %d" % (str(ATTACKCOUNTLIST), len(ATTACKCOUNTLIST), sum(ATTACKCOUNT)))
+
+    if message.content.startswith('!info'):
+        content = str(message.content)
+        word = content.split(" ")
+        if len(word) >= 2:
+            name = word[1]
+            row = HYDF[HYDF['player'] == name]
+            history = row.iloc[0]['History'].split("|")
+            log = "attack log"
+            for data in history:
+                log = log + "\n" + raidinfoparser(data)
+            log = log + "\nEnd log"
+            await message.channel.send(log)
+            
     if 'manduappa' in str(message.author):
-        if message.content.startswith('!Void') or message.content.startswith('!void'):
-            Void = list(HYDF[HYDF['Void'] == 0]['player'])
-            await message.channel.send("%s 남은타수 : %d" % (str(Void), len(Void)))
-
-        if message.content.startswith('!vm') or message.content.startswith('!VM'):
-            VM = list(HYDF[HYDF['VM'] == 0]['player'])
-            await message.channel.send("%s 남은타수 : %d" % (str(VM), len(VM)))
-
-        if message.content.startswith('!tac'):
-            TAC = list(HYDF[HYDF['Tactics'] == 0]['player'])
-            await message.channel.send("%s 남은타수 : %d" % (str(TAC), len(TAC)))
-
-        if message.content.startswith('!attack'):
-            ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
-            ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
-            await message.channel.send("%s\n 남은 사람수 : %d, 남은타수 : %d" % (str(ATTACKCOUNTLIST), len(ATTACKCOUNTLIST), sum(ATTACKCOUNT)))
-
-        if message.content.startswith('!info'):
-            content = str(message.content)
-            word = content.split(" ")
-            if len(word) >= 2:
-                name = word[1]
-                row = HYDF[HYDF['player'] == name]
-                history = row.iloc[0]['History'].split("|")
-                log = "attack log"
-                for data in history:
-                    log = log + "\n" + raidinfoparser(data)
-                log = log + "\nEnd log"
-                await message.channel.send(log)
-
         if message.content.startswith('.안녕'):
             await message.channel.send('안녕하세요')
 
