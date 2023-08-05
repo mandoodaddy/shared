@@ -42,11 +42,11 @@ def start_client(msg):
 # TOKEN should not be provided here, this is purely for an example
 # At minimum provide through .env
 # ----
-#AUTH_TOKEN = "c88595b8-168e-4fc8-a37c-e90052c2d41d"
-#PLAYER_TOKENS = ["08a9a652-d38b-4a57-b573-775693a66d4f"]
+AUTH_TOKEN = "c88595b8-168e-4fc8-a37c-e90052c2d41d"
+PLAYER_TOKENS = ["08a9a652-d38b-4a57-b573-775693a66d4f"]
 
-AUTH_TOKEN = "0b26bb07-eb2a-4563-944b-cebcd75a78e6"
-PLAYER_TOKENS = ["0a00e02e-1bf1-4a8f-8b5f-c6bf584e9788"]
+#AUTH_TOKEN = "0b26bb07-eb2a-4563-944b-cebcd75a78e6"
+#PLAYER_TOKENS = ["0a00e02e-1bf1-4a8f-8b5f-c6bf584e9788"]
 
 def jsondataformat(msg):
     msg = msg.replace("None", "'None'").replace("True", "'True'").replace("False", "'False'")
