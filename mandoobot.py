@@ -21,6 +21,7 @@ HYDF['AttackCount'] = 0
 HYDF['History'] = ""
 target_turn = 6
 remain_count = 1800
+remain_titan_hp = 0
 # Discord 봇 토큰
 #TOKEN = config.get('tester', 'token')
 TOKEN = config.get('Config', 'token')
@@ -107,14 +108,16 @@ async def on_message(message):
             if len(word) >= 2:
                 target_turn = int(word[1])
                 remain_count = target_turn * 300
-                await message.channel.send('%d턴 목표 설정 남은 타수 %d로 설정 되었습니다' % (target_turn, remain_count))
+                average = remain_titan_hp / remain_count
+                await message.channel.send('%d턴 목표 설정 남은 타수 %d로 설정 되었습니다.\n목표 딜이 변경되었습니다. 클리어 남은 평딜(%.1fM)' % (target_turn, remain_count, average/1000000))
 
         if message.content.startswith('.srt'):
             content = str(message.content)
             word = content.split(" ")
             if len(word) >= 2:
                 remain_count = int(word[1])
-                await message.channel.send('남은 타수 %d로 설정 되었습니다' % (remain_count))
+                average = remain_titan_hp / remain_count
+                await message.channel.send('남은 타수 %d로 설정 되었습니다\n목표 딜이 변경되었습니다. 클리어 남은 평딜(%.1fM)' % (remain_count, average/1000000))
 def raidinfoparser(data):
     global remain_count
     jsonObject2 = json.loads(data)
@@ -151,6 +154,7 @@ async def attack_log(data, channel):
     await channel.send('{}'.format(data))
 async def start_server(channel):
     global remain_count
+    global remain_titan_hp
     server.bind((HOST, PORT))
     server.listen(1)
     await channel.send('Server started')
@@ -188,23 +192,20 @@ async def start_server(channel):
                     elif 'clan_added_cycle' in jsonObject:
                         clan_added_cycle = jsonObject['clan_added_cycle']
                         remainhp = clan_added_cycle['remainhp']
+                        remain_titan_hp = remainhp
                         average = remainhp / remain_count
-                        print(remain_count)
-                        print(remainhp)
                         await channel.send('raid가 추가 되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
                     elif 'raid_target_changed' in jsonObject:
                         raid_target_changed = jsonObject['raid_target_changed']
                         remainhp = raid_target_changed['remainhp']
+                        remain_titan_hp = remainhp
                         average = remainhp / remain_count
-                        print(remain_count)
-                        print(remainhp)
                         await channel.send('Target이 변경되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
                     elif 'clan_added_raid_start' in jsonObject:
                         clan_added_raid_start = jsonObject['clan_added_raid_start']
                         remainhp = clan_added_raid_start['remainhp']
+                        remain_titan_hp = remainhp
                         average = remainhp / remain_count
-                        print(remain_count)
-                        print(remainhp)
                         await channel.send('raid가 시작되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
                         
                     #elif 'raid_target_changed' in jsonObject:
