@@ -62,41 +62,39 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('!Void') or message.content.startswith('!void'):
-        Void = list(HYDF[HYDF['Void'] == 0]['player'])
-        await message.channel.send("%s 남은타수 : %d" % (str(Void), len(Void)))
-
-    if message.content.startswith('!vm') or message.content.startswith('!VM'):
-        VM = list(HYDF[HYDF['VM'] == 0]['player'])
-        await message.channel.send("%s 남은타수 : %d" % (str(VM), len(VM)))
-
-    if message.content.startswith('!tac'):
-        TAC = list(HYDF[HYDF['Tactics'] == 0]['player'])
-        await message.channel.send("%s 남은타수 : %d" % (str(TAC), len(TAC)))
-
-    if message.content.startswith('!attack'):
-        ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
-        ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
-        await message.channel.send("%s\n 남은 사람수 : %d, 남은타수 : %d" % (str(ATTACKCOUNTLIST), len(ATTACKCOUNTLIST), sum(ATTACKCOUNT)))
-
-    if message.content.startswith('!info'):
-        content = str(message.content)
-        word = content.split(" ")
-        if len(word) >= 2:
-            name = word[1]
-            row = HYDF[HYDF['player'] == name]
-            history = row.iloc[0]['History'].split("|")
-            log = "attack log"
-            for data in history:
-                log = log + "\n" + raidinfoparser(data)
-            log = log + "\nEnd log"
-            await message.channel.send(log)
-            
     if 'manduappa' in str(message.author):
-        if message.content.startswith('.안녕'):
-            await message.channel.send('안녕하세요')
+        if message.content.startswith('!Void') or message.content.startswith('!void'):
+            Void = list(HYDF[HYDF['Void'] == 0]['player'])
+            await message.channel.send("%s 남은타수 : %d" % (str(Void), len(Void)))
 
-        if message.content.startswith('.start_server'):
+        if message.content.startswith('!vm') or message.content.startswith('!VM'):
+            VM = list(HYDF[HYDF['VM'] == 0]['player'])
+            await message.channel.send("%s 남은타수 : %d" % (str(VM), len(VM)))
+
+        if message.content.startswith('!tac'):
+            TAC = list(HYDF[HYDF['Tactics'] == 0]['player'])
+            await message.channel.send("%s 남은타수 : %d" % (str(TAC), len(TAC)))
+
+        if message.content.startswith('!attack'):
+            ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
+            ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
+            await message.channel.send(
+                "%s\n 남은 사람수 : %d, 남은타수 : %d" % (str(ATTACKCOUNTLIST), len(ATTACKCOUNTLIST), sum(ATTACKCOUNT)))
+
+        if message.content.startswith('!info'):
+            content = str(message.content)
+            word = content.split(" ")
+            if len(word) >= 2:
+                name = word[1]
+                row = HYDF[HYDF['player'] == name]
+                history = row.iloc[0]['History'].split("|")
+                log = "attack log"
+                for data in history:
+                    log = log + "\n" + raidinfoparser(data)
+                log = log + "\nEnd log"
+                await message.channel.send(log)
+
+        if message.content.startswith('.ss'):
             global bStartServer
             if bStartServer:
                 await message.channel.send('이미 서버가 시작중입니다.')
@@ -104,7 +102,7 @@ async def on_message(message):
                 bStartServer = True
                 asyncio.create_task(start_server(message.channel))
 
-        if message.content.startswith('.setturn'):
+        if message.content.startswith('.st'):
             content = str(message.content)
             word = content.split(" ")
             if len(word) >= 2:
@@ -112,7 +110,7 @@ async def on_message(message):
                 remain_count = target_turn * 300
                 await message.channel.send('%d턴 목표 설정 남은 타수 %d로 설정 되었습니다' % (target_turn, remain_count))
 
-        if message.content.startswith('.setremaincount'):
+        if message.content.startswith('.srt'):
             content = str(message.content)
             word = content.split(" ")
             if len(word) >= 2:
@@ -130,7 +128,7 @@ def raidinfoparser(data):
     for cardlevel in jsonObject2['card_level']:
         cardemoji = discord.utils.get(client.emojis, name=cardlevel['id'])
         data = data + "%s (%d), " % (str(cardemoji), cardlevel['value'])
-    data = data + '%d턴목표 평딜(%.1fM)' % (target_turn, average/1000000)
+    data = data + '%d턴 클리어 남은 평딜(%.1fM)' % (target_turn, average/1000000)
     return data
 
 async def attack_log(data, channel):
@@ -153,6 +151,7 @@ async def attack_log(data, channel):
     data = raidinfoparser(data)
     await channel.send('{}'.format(data))
 async def start_server(channel):
+    global remain_count
     server.bind((HOST, PORT))
     server.listen(1)
     await channel.send('Server started')
@@ -179,12 +178,36 @@ async def start_server(channel):
                         HYDF['Tactics'] = 0
                         HYDF['AttackCount'] = 6
                         HYDF['History'] = ""
+                        await channel.send('raid가 종료되었습니다')
                     elif 'raid_cycle_reset' in jsonObject:
                         HYDF['Void'] = 0
                         HYDF['VM'] = 0
                         HYDF['Tactics'] = 0
                         HYDF['AttackCount'] = HYDF.apply(attackupdate, axis=1)
                         HYDF['History'] = ""
+                        await channel.send('raid 턴이 reset 되었습니다')
+                    elif 'clan_added_cycle' in jsonObject:
+                        clan_added_cycle = jsonObject['clan_added_cycle']
+                        remainhp = clan_added_cycle['remainhp']
+                        average = remainhp / remain_count
+                        print(remain_count)
+                        print(remainhp)
+                        await channel.send('raid가 추가 되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
+                    elif 'raid_target_changed' in jsonObject:
+                        raid_target_changed = jsonObject['raid_target_changed']
+                        remainhp = raid_target_changed['remainhp']
+                        average = remainhp / remain_count
+                        print(remain_count)
+                        print(remainhp)
+                        await channel.send('Target이 변경되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
+                    elif 'clan_added_raid_start' in jsonObject:
+                        clan_added_raid_start = jsonObject['clan_added_raid_start']
+                        remainhp = clan_added_raid_start['remainhp']
+                        average = remainhp / remain_count
+                        print(remain_count)
+                        print(remainhp)
+                        await channel.send('raid가 시작되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
+                        
                     #elif 'raid_target_changed' in jsonObject:
                     #    await channel.send(str(jsonObject['raid_target_changed']))
 

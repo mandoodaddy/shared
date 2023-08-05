@@ -5,17 +5,19 @@ import time
 import copy
 from tap_titans.providers import providers
 from tap_titans.models import models
+from TitanInfo import TitanInfo
 
 titan_hp_info = []
+titan_index = 0
 attack_count = 0
 # 소켓 서버의 호스트와 포트
 HOST = '127.0.0.1'
 PORT = 1234
 def printdata(data):
-    #f = open('raiddata.log', 'a')
-    #f.write(data)
-    #f.write('\n')
-    #f.close()
+    f = open('raiddata.log', 'a')
+    f.write(data)
+    f.write('\n')
+    f.close()
     return
 
 def start_client(msg):
@@ -40,40 +42,45 @@ def start_client(msg):
 # TOKEN should not be provided here, this is purely for an example
 # At minimum provide through .env
 # ----
-AUTH_TOKEN = "c88595b8-168e-4fc8-a37c-e90052c2d41d"
-PLAYER_TOKENS = ["08a9a652-d38b-4a57-b573-775693a66d4f"]
+#AUTH_TOKEN = "c88595b8-168e-4fc8-a37c-e90052c2d41d"
+#PLAYER_TOKENS = ["08a9a652-d38b-4a57-b573-775693a66d4f"]
 
+AUTH_TOKEN = "0b26bb07-eb2a-4563-944b-cebcd75a78e6"
+PLAYER_TOKENS = ["0a00e02e-1bf1-4a8f-8b5f-c6bf584e9788"]
 
 def jsondataformat(msg):
     msg = msg.replace("None", "'None'").replace("True", "'True'").replace("False", "'False'")
     msg = msg.replace("'", '"')
     return msg
 
-
 def update_info(titan_hp_info, raid_state):
+    global titan_index
     titan_index = raid_state['titan_index']
-    parts = titan_hp_info[titan_index]['part']
     current = raid_state['current']
-    current_hp = current['current_hp']
-    current_parts = current['parts']
-    titan_hp_info[titan_index]['total_hp'] = current_hp
-    for i, current_part in enumerate(current_parts):
-        titan_hp_info[titan_index]['part'][i]['total_hp'] = current_part['current_hp']
+    titaninfo = titan_hp_info[titan_index]
+    titaninfo.setTotalHP(current['current_hp'])
+    for part in current['parts']:
+        titaninfo.setPartHP(part['part_id'], part['current_hp'])
     return titan_hp_info
 
+def init_titan_info(titans_info, titan_target, titans):
+    for target, titan in zip(titan_target, titans):
+        name = titan['enemy_name']
+        titaninfo = TitanInfo(titan['enemy_name'], titan['enemy_id'], titan['total_hp'])
+        for part in titan['parts']:
+            titaninfo.setPartHP(part['part_id'], part['total_hp'])
+        for state in target['state']:
+            titaninfo.setState(state['id'], state['state'])
+        totalhp = titaninfo.getTotalHP()
+        titans_info[name] = titaninfo
+    return titans_info
+
 def remain_hp(titan_hp_info, raid_state):
-    titan_index = raid_state['titan_index']
+    global titan_index
     sum = 0.0
-    for i, titan in enumerate(titan_hp_info):
+    for i, titaninfo in enumerate(titan_hp_info):
         if i < titan_index: continue
-        total_hp = titan['total_hp']
-        armor = 0.0
-        for part in titan['part']:
-            if part['state'] != '2':continue
-            if 'Armor' in part['part_id']:
-                armor += part['total_hp']
-        total_hp += armor
-        sum += total_hp
+        sum += titaninfo.getTotalHP()
     return sum
 
 def parser_log(message):
@@ -81,6 +88,7 @@ def parser_log(message):
     data = ''
     global attack_count
     global titan_hp_info
+    global titan_index
     if 'clan_added_raid_start' in jsonObject:
         titan_hp_info = []
         attack_count = 0
@@ -91,22 +99,14 @@ def parser_log(message):
         titans = raid['titans']
 
         titans_info = {}
-        for target, titan in zip(titan_target, titans):
-            state_list = [x for x in target['state'] for _ in range(2)]
-            parts = titan['parts']
-            name = titan['enemy_name']
-            titan_info = {}
-            titan_info['total_hp'] = titan['total_hp']
-            part_list = []
-            for part, state in zip(parts, state_list):
-                part['state'] = state['state']
-                part_list.append(part)
-            titan_info['part'] = part_list
-            titan_info['name'] = name
-            titans_info[name] = titan_info
+        titans_info = init_titan_info(titans_info, titan_target, titans)
         titan_hp_info = []
         for titan in spawn_sequence:
             titan_hp_info.append(copy.deepcopy(titans_info[titan]))
+        raid_state = {}
+        raid_state['titan_index'] = titan_index
+        remainhp = remain_hp(titan_hp_info, raid_state)
+        data = '{"clan_added_raid_start" : {"remainhp" : %d}}' % remainhp
     elif 'raid_attack' in jsonObject:
         attack_count += 1
         raid_attack = jsonObject['raid_attack']
@@ -154,21 +154,24 @@ def parser_log(message):
         titans = raid['titans']
 
         titans_info = {}
-        for target, titan in zip(titan_target, titans):
-            state_list = [x for x in target['state'] for _ in range(2)]
-            parts = titan['parts']
-            name = titan['enemy_name']
-            titan_info = {}
-            titan_info['total_hp'] = titan['total_hp']
-            part_list = []
-            for part, state in zip(parts, state_list):
-                part['state'] = state['state']
-                part_list.append(part)
-            titan_info['part'] = part_list
-            titan_info['name'] = name
-            titans_info[name] = titan_info
+        titans_info = init_titan_info(titans_info, titan_target, titans)
+        titan_hp_info = []
         for titan in spawn_sequence:
             titan_hp_info.append(copy.deepcopy(titans_info[titan]))
+        raid_state = {}
+        raid_state['titan_index'] = titan_index
+        remainhp = remain_hp(titan_hp_info, raid_state)
+        data = '{"clan_added_cycle" : {"remainhp" : %d}}' % remainhp
+    elif 'raid_target_changed' in jsonObject:
+        raid_target_changed = jsonObject['raid_target_changed']
+        for titaninfo in titan_hp_info:
+            if titaninfo.getID() != raid_target_changed['enemy_id']: continue
+            for state in raid_target_changed['state']:
+                titaninfo.setState(state['id'], state['state'])
+        raid_state = {}
+        raid_state['titan_index'] = titan_index
+        remainhp = remain_hp(titan_hp_info, raid_state)
+        data = '{"raid_target_changed" : {"remainhp" : %d}}' % remainhp
     else:
         data = message
     return data
