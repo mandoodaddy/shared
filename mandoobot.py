@@ -12,7 +12,7 @@ config = configparser.ConfigParser()
 # config.ini 파일 읽기
 config.read('config.ini')
 
-player_rawdata = {'player' : ['HY', 'ShiJinBBing', 'ShinBBing', '가설', '고만두', '굿럭', '나우니스리', '다정', '다킁이', '두더지', '또가스', '마스터즈', '만두아빠', '미스터문', '백야', '비의', '비즈맨', '새벽', '샤이즌', '소이츠맨', '쉼찡', '스톰피스트', '스포디', '신속', '신우', '야르', '어택', '에펠탑꼭대기', '으엌', '이실', '임일병', '저녁', '조운', '진진', '찐콩', '초점없는눈', '치느', '킹물소', '택돌이', '탭하는아재', '테이커', '텍스트', '페이트', '풍경', '프리츠', '핑프', '하울', '하트', '하하', '헬보이']}
+player_rawdata = {'player' : ['HY', 'ShiJinBBing', 'ShinBBing', '가설', '고만두', '굿럭', '나우니스리', '다정', '두더지', '또가스', '마스터즈', '만두아빠', '멍총이', '미스터문', '백야', '비의', '비즈맨', '새벽', '샤이즌', '쉼찡', '스톰피스트', '스포디', '신속', '신우', '야르', '에펠탑꼭대기', '으엌', '이실', '임일병', '잘께요', '저녁', '조운', '진진', '찐콩', '초점없는눈', '치느', '킹물소', '택돌이', '탭하는아재', '테이커', '텍스트', '페이트', '풍경', '프리츠', '핑프', '하울', '하트', '하하', '헬보이']}
 HYDF = pd.DataFrame(player_rawdata)
 HYDF['Void'] = 0
 HYDF['VM'] = 0
@@ -20,7 +20,8 @@ HYDF['Tactics'] = 0
 HYDF['AttackCount'] = 0
 HYDF['History'] = ""
 target_turn = 6
-remain_count = 1800
+default_attack_count = 294
+remain_count = target_turn * default_attack_count
 remain_titan_hp = 0
 # Discord 봇 토큰
 #TOKEN = config.get('tester', 'token')
@@ -43,14 +44,16 @@ def attackupdate(row):
     row['AttackCount'] = row['AttackCount'] + 6
     return row['AttackCount']
 
-
 async def send_message_to_bot(message):
     channel = client.get_channel(int(CHANNEL_ID))
     await channel.send(message)
 
 @client.event
 async def on_ready():
+    channel = client.get_channel(int(CHANNEL_ID))
+    await channel.send('mandoobot이 시작되었습니다.')
     print('Logged in as {0.user}'.format(client))
+
 @client.event
 async def on_custom_event(message):
     # 이벤트로 전달된 메시지를 처리
@@ -74,7 +77,7 @@ async def on_message(message):
         TAC = list(HYDF[HYDF['Tactics'] == 0]['player'])
         await message.channel.send("%s 남은타수 : %d" % (str(TAC), len(TAC)))
 
-    if message.content.startswith('.attack'):
+    if message.content.startswith('.ak'):
         ATTACKCOUNTLIST = list(HYDF[HYDF['AttackCount'] > 0]['player'])
         ATTACKCOUNT = list(HYDF[HYDF['AttackCount'] > 0]['AttackCount'])
         await message.channel.send(
@@ -107,7 +110,7 @@ async def on_message(message):
             word = content.split(" ")
             if len(word) >= 2:
                 target_turn = int(word[1])
-                remain_count = target_turn * 300
+                remain_count = target_turn * default_attack_count
                 average = remain_titan_hp / remain_count
                 await message.channel.send('%d턴 목표 설정 남은 타수 %d로 설정 되었습니다.\n목표 딜이 변경되었습니다. 클리어 남은 평딜(%.1fM)' % (target_turn, remain_count, average/1000000))
 
@@ -152,6 +155,7 @@ async def attack_log(data, channel):
             HYDF.loc[HYDF['player'] == jsonObject['name'], 'Tactics'] = 1
     data = raidinfoparser(data)
     await channel.send('{}'.format(data))
+
 async def start_server(channel):
     global remain_count
     global remain_titan_hp
@@ -160,10 +164,20 @@ async def start_server(channel):
     await channel.send('Server started')
     while True:
         try:
+            testch = client.get_channel(1134146247540887693)
+            await testch.send('hello')
+        except Exception as e:
+            print('Error occurred: {}'.format(str(e)))
+
+        try:
             server.settimeout(5.0)
             conn, addr = server.accept()
+        except Exception as e:
+            continue
+
+        try:
             with conn:
-                print('Connected by', addr)
+                #print('Connected by', addr)
                 #await channel.send('Connected')
                 while True:
                     conn.settimeout(5.0)
@@ -207,14 +221,13 @@ async def start_server(channel):
                         remain_titan_hp = remainhp
                         average = remainhp / remain_count
                         await channel.send('raid가 시작되었습니다. 남은 목표 평딜은 (%.1fM) 입니다.' % (average/1000000))
-                        
+
                     #elif 'raid_target_changed' in jsonObject:
                     #    await channel.send(str(jsonObject['raid_target_changed']))
 
                     conn.sendall('Message received'.encode())
         except Exception as e:
-            #print('Error occurred: {}'.format(str(e)))
-            await channel.webhooks()
+            print('Error occurred: {}'.format(str(e)))
             continue
 
 
