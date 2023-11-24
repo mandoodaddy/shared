@@ -86,10 +86,30 @@ def remain_hp(titan_hp_info, raid_state):
 def parser_log(message):
     jsonObject = json.loads(message)
     data = ''
+    #if 'raid_attack' not in jsonObject:
+    #printdata(message)
     global attack_count
     global titan_hp_info
     global titan_index
-    if 'clan_added_raid_start' in jsonObject:
+    if 'raid_start' in jsonObject:
+        titan_hp_info = []
+        attack_count = 0
+        raid_start = jsonObject['raid_start']
+        raid = raid_start['raid']
+        titan_target = raid_start['titan_target']
+        spawn_sequence = raid['spawn_sequence']
+        titans = raid['titans']
+
+        titans_info = {}
+        titans_info = init_titan_info(titans_info, titan_target, titans)
+        titan_hp_info = []
+        for titan in spawn_sequence:
+            titan_hp_info.append(copy.deepcopy(titans_info[titan]))
+        raid_state = {}
+        raid_state['titan_index'] = titan_index
+        remainhp = remain_hp(titan_hp_info, raid_state)
+        data = '{"raid_start" : {"remainhp" : %d}}' % remainhp
+    elif 'clan_added_raid_start' in jsonObject:
         titan_hp_info = []
         attack_count = 0
         clan_added_raid_start = jsonObject['clan_added_raid_start']
@@ -197,73 +217,62 @@ async def disconnected():
 
 async def error(message: models.Message):
     printdata(str(message))
-    print("Error", message)
 
 
 async def connection_error(message: models.Message):
     printdata(str(message))
-    print("Connection Error", message)
 
 
 async def clan_removed(message: models.ClanRemoved):
     message = jsondataformat(str(message))
     data = '{"clan_removed": %s}' % message
     start_client(str(parser_log(data)))
-    print("Clan Removed", message)
 
 
 async def raid_attack(message: models.RaidAttack):
     message = jsondataformat(str(message))
     data = '{"raid_attack": %s}' % message
     start_client(str(parser_log(data)))
-    print("Raid Attack", data)
 
 
 async def raid_start(message: models.RaidStart):
     message = jsondataformat(str(message))
     data = '{"raid_start": %s}' % message
     start_client(str(parser_log(data)))
-    print("Raid Start", message)
 
 
 async def clan_added_raid_start(message: models.RaidStart):
     message = jsondataformat(str(message))
     data = '{"clan_added_raid_start": %s}' % message
     start_client(str(parser_log(data)))
-    print("Clan Added Raid Start", message)
 
 
 async def raid_end(message: models.RaidEnd):
-    message = jsondataformat(str(message))
-    data = '{"raid_end": %s}' % message
+    #message = jsondataformat(str(message))
+    data = '{"raid_end": "raid_end"}'
     start_client(str(parser_log(data)))
-    print("Raid End", message)
 
 
 async def raid_retire(message: models.RaidRetire):
     message = jsondataformat(str(message))
     data = '{"raid_retire": %s}' % message
     start_client(str(parser_log(data)))
-    print("Raid Retire", message)
 
 
 async def raid_cycle_reset(message: models.RaidCycleReset):
     message = jsondataformat(str(message))
     data = '{"raid_cycle_reset": %s}' % message
     start_client(str(parser_log(data)))
-    print("Raid Cycle Reset", message)
 
 async def clan_added_cycle(message: models.RaidCycleReset):
     message = jsondataformat(str(message))
     data = '{"clan_added_cycle": %s}' % message
     start_client(str(parser_log(data)))
-    print("Clan Added Cycle", message)
 
 async def raid_target_changed(message: models.RaidTarget):
     message = jsondataformat(str(message))
     data = '{"raid_target_changed": %s}' % message
     start_client(str(parser_log(data)))
-    print("Raid Target Changed", message)
 
 
 wsc = providers.WebsocketClient(
