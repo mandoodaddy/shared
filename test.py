@@ -64,15 +64,24 @@ def update_info(titan_hp_info, raid_state):
     return titan_hp_info
 
 def init_titan_info(titans_info, titan_target, titans):
-    for target, titan in zip(titan_target, titans):
-        name = titan['enemy_name']
-        titaninfo = TitanInfo(titan['enemy_name'], titan['enemy_id'], titan['total_hp'])
-        for part in titan['parts']:
-            titaninfo.setPartHP(part['part_id'], part['total_hp'])
-        for state in target['state']:
-            titaninfo.setState(state['id'], state['state'])
-        totalhp = titaninfo.getTotalHP()
-        titans_info[name] = titaninfo
+    if titan_target == "null":
+        for titan in titans:
+            name = titan['enemy_name']
+            titaninfo = TitanInfo(titan['enemy_name'], titan['enemy_id'], titan['total_hp'])
+            for part in titan['parts']:
+                titaninfo.setPartHP(part['part_id'], part['total_hp'])
+            totalhp = titaninfo.getTotalHP()
+            titans_info[name] = titaninfo
+    else:
+        for target, titan in zip(titan_target, titans):
+            name = titan['enemy_name']
+            titaninfo = TitanInfo(titan['enemy_name'], titan['enemy_id'], titan['total_hp'])
+            for part in titan['parts']:
+                titaninfo.setPartHP(part['part_id'], part['total_hp'])
+            for state in target['state']:
+                titaninfo.setState(state['id'], state['state'])
+            totalhp = titaninfo.getTotalHP()
+            titans_info[name] = titaninfo
     return titans_info
 
 def remain_hp(titan_hp_info, raid_state):
@@ -96,12 +105,11 @@ def parser_log(message):
         attack_count = 0
         raid_start = jsonObject['raid_start']
         raid = raid_start['raid']
-        titan_target = raid_start['titan_target']
         spawn_sequence = raid['spawn_sequence']
         titans = raid['titans']
 
         titans_info = {}
-        titans_info = init_titan_info(titans_info, titan_target, titans)
+        titans_info = init_titan_info(titans_info, "null", titans)
         titan_hp_info = []
         for titan in spawn_sequence:
             titan_hp_info.append(copy.deepcopy(titans_info[titan]))
